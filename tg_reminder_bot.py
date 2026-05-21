@@ -102,7 +102,13 @@ async def send_message():
             parse_mode="Markdown"
         )
 
-        log(f"SENT OK | message_id={msg.message_id}")
+        await bot.pin_chat_message(
+            chat_id=CHAT_ID,
+            message_id=msg.message_id,
+            disable_notification=False
+        )
+
+        log(f"SENT OK+PINNED | message_id={msg.message_id}")
 
     except Exception as e:
         log(f"ERROR: {e}")
