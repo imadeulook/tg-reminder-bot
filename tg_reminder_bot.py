@@ -1,18 +1,18 @@
 import os
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from telegram import Bot
 
 # ======================
-# CONFIG (из GitHub Secrets)
+# CONFIG
 # ======================
 
 TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 
 # ======================
-# LOGGING (GitHub Actions читает stdout)
+# LOGGING
 # ======================
 
 logging.basicConfig(
@@ -23,11 +23,11 @@ logging.basicConfig(
 log = logging.info
 
 # ======================
-# SCHEDULE (твои даты)
+# SCHEDULE
 # ======================
 
 SCHEDULE = {
-    "20.05.26": "Элдик",
+    "21.05.26": "Мастер сегодня стирает манишки",
     "27.05.26": "Арис",
     "03.06.26": "Авта",
     "10.06.26": "Тарик",
@@ -41,7 +41,6 @@ SCHEDULE = {
     "05.08.26": "Батя",
     "12.08.26": "Ильяс",
     "19.08.26": "Беля А",
-    "21.05.26": "Мастер сегодня стирает манишки",
     "02.09.26": "Тала",
     "09.09.26": "Мерз",
     "16.09.26": "СЕО",
@@ -62,21 +61,27 @@ SCHEDULE = {
 }
 
 # ======================
-# MAIN LOGIC
+# MAIN
 # ======================
 
-async def main():
-    now = datetime.now()
-    today = now.strftime("%d.%m.%y")
-    current_time = now.strftime("%H:%M")
+async def send_message():
+    now_local = datetime.now()
+    now_utc = datetime.now(timezone.utc)
 
-    log(f"FILE STARTED")
-    log(f"TODAY = {today}")
-    log(f"TIME = {current_time}")
+    today = now_local.strftime("%d.%m.%y")
 
-    # ❌ если нет даты — ничего не делаем
+    log("========== RUN START ==========")
+    log(f"FILE: {os.path.abspath(__file__)}")
+    log(f"PID: {os.getpid()}")
+    log(f"LOCAL TIME: {now_local}")
+    log(f"UTC TIME:   {now_utc}")
+    log(f"CHECK DATE: {today}")
+    log(f"SCHEDULE KEYS: {list(SCHEDULE.keys())}")
+
+    # ❌ если даты нет — выходим
     if today not in SCHEDULE:
         log(f"SKIP: no schedule for {today}")
+        log("========== RUN END ==========")
         return
 
     name = SCHEDULE[today]
@@ -87,24 +92,26 @@ async def main():
     )
 
     try:
+        log("SENDING MESSAGE...")
+
         bot = Bot(token=TOKEN)
 
         msg = await bot.send_message(
             chat_id=CHAT_ID,
             text=text,
-            parse_mode="Markdown",
-            disable_notification=False
+            parse_mode="Markdown"
         )
 
-        log(f"SENT: {text}")
-        log(f"MESSAGE_ID: {msg.message_id}")
+        log(f"SENT OK | message_id={msg.message_id}")
 
     except Exception as e:
         log(f"ERROR: {e}")
 
+    log("========== RUN END ==========")
+
 # ======================
-# RUN
+# ENTRY
 # ======================
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(send_message())

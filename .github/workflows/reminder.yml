@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Python
@@ -18,8 +18,15 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install packages
-        run: pip install -r requirements.txt
+      - name: Install
+        run: pip install python-telegram-bot
+
+      - name: Debug environment
+        run: |
+          echo "===== SYSTEM INFO ====="
+          date
+          echo "UTC TIME CHECK"
+          python -c "from datetime import datetime, timezone; print(datetime.now(timezone.utc))"
 
       - name: Run bot
         env:
