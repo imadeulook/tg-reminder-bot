@@ -2,7 +2,7 @@ name: Telegram Reminder Bot
 
 on:
   schedule:
-    - cron: '20 12 * * *'   # каждый день 14:05 UTC
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 jobs:
