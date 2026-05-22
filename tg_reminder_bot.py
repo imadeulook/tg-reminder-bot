@@ -3,13 +3,14 @@ import asyncio
 import logging
 from datetime import datetime
 from telegram import Bot
+from datetime import datetime, timezone
 
 # ======================
 # CONFIG (из GitHub Secrets)
 # ======================
 
 TOKEN = os.getenv("BOT_TOKEN")
-CHAT_ID = os.getenv("CHAT_ID")
+CHAT_ID = int(os.getenv("CHAT_ID"))
 
 # ======================
 # LOGGING (GitHub Actions читает stdout)
@@ -41,7 +42,7 @@ SCHEDULE = {
     "05.08.26": "Батя сегодня стирает манишки",
     "12.08.26": "Ильяс сегодня стирает манишки",
     "19.08.26": "Беля А сегодня стирает манишки",
-    "21.05.26": "Мастер сегодня стирает манишки",
+    "26.08.26": "Мастер сегодня стирает манишки",
     "02.09.26": "Тала сегодня стирает манишки",
     "09.09.26": "Мерз сегодня стирает манишки",
     "16.09.26": "СЕО сегодня стирает манишки",
@@ -66,9 +67,10 @@ SCHEDULE = {
 # ======================
 
 async def main():
-    now = datetime.now()
-    today = now.strftime("%d.%m.%y")
-    current_time = now.strftime("%H:%M")
+    now_local = datetime.now().astimezone()
+    now_utc = datetime.now(timezone.utc)
+
+    today = now_local.strftime("%d.%m.%y")
 
     log("========== RUN START ==========")
     log(f"FILE: {os.path.abspath(__file__)}")
