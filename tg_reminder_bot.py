@@ -4,6 +4,7 @@ import logging
 from datetime import datetime
 from telegram import Bot
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 # ======================
 # CONFIG (из GitHub Secrets)
@@ -67,7 +68,7 @@ SCHEDULE = {
 # ======================
 
 async def main():
-    now_local = datetime.now().astimezone()
+    now_local = datetime.now(ZoneInfo("Asia/Bishkek"))
     now_utc = datetime.now(timezone.utc)
 
     today = now_local.strftime("%d.%m.%y")
