@@ -2,13 +2,14 @@ import os
 import json
 import asyncio
 import logging
+import subprocess
 from telegram import Bot
 
 # ======================
 # CONFIG
 # ======================
 
-TOKEN = "1322219909:AAG13Qfr7GrYqK8nWYUtsd79gAE6AfadL0E"
+TOKEN = ":"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_FILE = os.path.normpath(os.path.join(BASE_DIR, "..", "data", "players.json"))
@@ -21,13 +22,29 @@ log = logging.info
 bot = Bot(token=TOKEN)
 
 # ======================
+# ADMINS
+# ======================
+
+ADMINS = [790870831]  # <-- твой ID сюда
+
+def is_admin(user_id: int) -> bool:
+    return user_id in ADMINS
+
+
+# ======================
+# STATE
+# ======================
+
+REGISTRATION_OPEN = False
+
+
+# ======================
 # STORAGE
 # ======================
 
 def load_data():
     if not os.path.exists(DATA_FILE):
         return {"players": []}
-
     try:
         with open(DATA_FILE, "r") as f:
             return json.load(f)
@@ -37,83 +54,166 @@ def load_data():
 
 def save_data(data):
     with open(DATA_FILE, "w") as f:
-        json.dump(data, f)
+        json.dump(data, f, indent=2)
+
+
+def reset_players():
+    save_data({"players": []})
 
 
 # ======================
-# INGAME LOGIC
+# HELP
 # ======================
 
-async def handle_update(update: dict):
-    log(f"UPDATE: {update}")
+async def handle_help(chat_id):
+    text = (
+        "⚽ <b>Football Bot</b>\n\n"
 
+        "👤 Игроки\n"
+        "/ingame — записаться\n"
+        "/out — выйти\n"
+        "/status — список игроков\n\n"
+
+        "🟢 Регистрация (admin)\n"
+        "/openvote — начать набор\n"
+        "/lockvote — закрыть набор\n\n"
+
+        "🚀 Система (admin)\n"
+        "/push — сохранить в Git\n\n"
+
+        "🆔 Инфо\n"
+        "/id — твой ID\n"
+        "/help — команды"
+    )
+
+    await bot.send_message(chat_id, text, parse_mode="HTML")
+
+
+# ======================
+# HANDLER
+# ======================
+
+async def handle(update: dict):
     if "message" not in update:
         return
 
     msg = update["message"]
     text = msg.get("text", "")
     chat_id = msg["chat"]["id"]
-
     user = msg["from"]
 
-    # ---------------- /football ----------------
-    if text == "/football":
-        data = load_data()
-        players = data["players"]
+    user_id = user["id"]
+    name = user.get("first_name", "player")
 
-        names = "\n".join([f"• {p['name']}" for p in players])
+    data = load_data()
+    players = data["players"]
 
-        text_msg = (
-            "⚽ <b>Регистрация открыта</b>\n\n"
-            f"👥 Уже в игре: {len(players)}\n\n"
-            f"{names if names else 'Пока никого'}\n\n"
-            "👉 Напиши /ingame чтобы записаться"
-        )
+    global REGISTRATION_OPEN
 
-        await bot.send_message(
-            chat_id=chat_id,
-            text=text_msg,
-            parse_mode="HTML"
-        )
+    # ======================
+    # ROUTER
+    # ======================
 
-    # ---------------- /ingame ----------------
-    elif text == "/ingame":
-        data = load_data()
-        players = data["players"]
+    match text:
 
-        player = {
-            "id": user["id"],
-            "name": user.get("first_name", "unknown")
-        }
+        # ---------------- HELP ----------------
+        case "/help":
+            await handle_help(chat_id)
 
-        # проверка дубля
-        if any(p["id"] == player["id"] for p in players):
-            await bot.send_message(chat_id, "⚠️ Ты уже в игре")
-            return
+        # ---------------- ID ----------------
+        case "/id":
+            await bot.send_message(chat_id, f"Your ID: {user_id}")
 
-        players.append(player)
-        data["players"] = players
-        save_data(data)
+        # ---------------- STATUS ----------------
+        case "/status":
+            names = "\n".join([f"• {p['name']}" for p in players]) or "пусто"
+            await bot.send_message(chat_id, f"👥 {len(players)} игроков\n\n{names}")
 
-        names = "\n".join([f"• {p['name']}" for p in players])
+        # ---------------- INGAME ----------------
+        case "/ingame":
+            if not REGISTRATION_OPEN:
+                await bot.send_message(chat_id, "❌ регистрация закрыта")
+                return
 
-        await bot.send_message(
-            chat_id=chat_id,
-            text=(
-                f"✅ {player['name']} записался!\n\n"
-                f"👥 Всего игроков: {len(players)}\n\n"
-                f"{names}"
+            if any(p["id"] == user_id for p in players):
+                await bot.send_message(chat_id, "⚠️ ты уже в игре")
+                return
+
+            players.append({"id": user_id, "name": name})
+            save_data({"players": players})
+
+            await bot.send_message(chat_id, f"✅ {name} добавлен")
+
+        # ---------------- OUT ----------------
+        case "/out":
+            players = [p for p in players if p["id"] != user_id]
+            save_data({"players": players})
+
+            await bot.send_message(chat_id, "👋 ты вышел")
+
+        # ======================
+        # ADMIN COMMANDS
+        # ======================
+
+        # ---------------- OPENVOTE ----------------
+        case "/openvote":
+            if not is_admin(user_id):
+                await bot.send_message(chat_id, "⛔ нет прав")
+                return
+
+            reset_players()
+            REGISTRATION_OPEN = True
+
+            await bot.send_message(
+                chat_id,
+                "🟢 НОВОЕ ГОЛОСОВАНИЕ\n\n"
+                "👥 список очищен\n"
+                "👉 /ingame чтобы войти"
             )
-        )
+
+        # ---------------- LOCKVOTE ----------------
+        case "/lockvote":
+            if not is_admin(user_id):
+                await bot.send_message(chat_id, "⛔ нет прав")
+                return
+
+            REGISTRATION_OPEN = False
+
+            await bot.send_message(
+                chat_id,
+                f"🔒 закрыто\n👥 игроков: {len(players)}"
+            )
+
+        # ---------------- PUSH ----------------
+        case "/push":
+            if not is_admin(user_id):
+                await bot.send_message(chat_id, "⛔ нет прав")
+                return
+
+            try:
+                repo = BASE_DIR
+
+                subprocess.run(["git", "add", DATA_FILE], cwd=repo, check=True)
+                subprocess.run(["git", "commit", "-m", "update players"], cwd=repo, check=True)
+                subprocess.run(["git", "push", "origin", "dev"], cwd=repo, check=True)
+
+                await bot.send_message(chat_id, "🚀 pushed")
+
+            except Exception as e:
+                await bot.send_message(chat_id, f"❌ git error: {e}")
+
+        # ---------------- DEFAULT ----------------
+        case _:
+            pass
 
 
 # ======================
-# POLLING
+# POLLING LOOP
 # ======================
 
 async def run():
     offset = 0
-    log("🚀 BOT STARTED")
+    log("🚀 FOOTBALL BOT STARTED")
 
     while True:
         try:
@@ -121,7 +221,7 @@ async def run():
 
             for u in updates:
                 offset = u.update_id + 1
-                await handle_update(u.to_dict())
+                await handle(u.to_dict())
 
         except Exception as e:
             log(f"ERROR: {e}")
