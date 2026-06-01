@@ -19,7 +19,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Generate teams
-        run: python football/team_builder.py
+        run: python tg-reminder-bot/football/team_builder.py
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
