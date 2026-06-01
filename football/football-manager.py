@@ -1,19 +1,38 @@
 import os
 import json
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
+import asyncio
+import logging
+from telegram import Bot
 
-TOKEN = os.getenv("BOT_TOKEN")
-CHAT_ID = int(os.getenv("CHAT_ID"))
+# ======================
+# CONFIG
+# ======================
 
-DATA_FILE = "football/data.json"
+TOKEN = "1322219909:AAG13Qfr7GrYqK8nWYUtsd79gAE6AfadL0E"
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_FILE = os.path.normpath(os.path.join(BASE_DIR, "..", "data", "players.json"))
+
+os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
+
+logging.basicConfig(level=logging.INFO)
+log = logging.info
+
+bot = Bot(token=TOKEN)
+
+# ======================
+# STORAGE
+# ======================
 
 def load_data():
     if not os.path.exists(DATA_FILE):
         return {"players": []}
-    with open(DATA_FILE, "r") as f:
-        return json.load(f)
+
+    try:
+        with open(DATA_FILE, "r") as f:
+            return json.load(f)
+    except:
+        return {"players": []}
 
 
 def save_data(data):
@@ -21,43 +40,94 @@ def save_data(data):
         json.dump(data, f)
 
 
-# /football
-async def football(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [InlineKeyboardButton("⚽ Я играю", callback_data="join")]
-    ]
+# ======================
+# INGAME LOGIC
+# ======================
 
-    await update.message.reply_text(
-        "⚽ Игра открыта!\nНажми кнопку чтобы записаться",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+async def handle_update(update: dict):
+    log(f"UPDATE: {update}")
 
+    if "message" not in update:
+        return
 
-# кнопка
-async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
+    msg = update["message"]
+    text = msg.get("text", "")
+    chat_id = msg["chat"]["id"]
 
-    user = query.from_user
-    data = load_data()
+    user = msg["from"]
 
-    # защита от дубля
-    if user.id not in data["players"]:
-        data["players"].append(user.id)
+    # ---------------- /football ----------------
+    if text == "/football":
+        data = load_data()
+        players = data["players"]
+
+        names = "\n".join([f"• {p['name']}" for p in players])
+
+        text_msg = (
+            "⚽ <b>Регистрация открыта</b>\n\n"
+            f"👥 Уже в игре: {len(players)}\n\n"
+            f"{names if names else 'Пока никого'}\n\n"
+            "👉 Напиши /ingame чтобы записаться"
+        )
+
+        await bot.send_message(
+            chat_id=chat_id,
+            text=text_msg,
+            parse_mode="HTML"
+        )
+
+    # ---------------- /ingame ----------------
+    elif text == "/ingame":
+        data = load_data()
+        players = data["players"]
+
+        player = {
+            "id": user["id"],
+            "name": user.get("first_name", "unknown")
+        }
+
+        # проверка дубля
+        if any(p["id"] == player["id"] for p in players):
+            await bot.send_message(chat_id, "⚠️ Ты уже в игре")
+            return
+
+        players.append(player)
+        data["players"] = players
         save_data(data)
-        await query.edit_message_text(f"✅ {user.first_name} записан")
-    else:
-        await query.answer("Ты уже в игре", show_alert=True)
+
+        names = "\n".join([f"• {p['name']}" for p in players])
+
+        await bot.send_message(
+            chat_id=chat_id,
+            text=(
+                f"✅ {player['name']} записался!\n\n"
+                f"👥 Всего игроков: {len(players)}\n\n"
+                f"{names}"
+            )
+        )
 
 
-def main():
-    app = Application.builder().token(TOKEN).build()
+# ======================
+# POLLING
+# ======================
 
-    app.add_handler(CommandHandler("football", football))
-    app.add_handler(CallbackQueryHandler(button))
+async def run():
+    offset = 0
+    log("🚀 BOT STARTED")
 
-    app.run_polling()
+    while True:
+        try:
+            updates = await bot.get_updates(offset=offset, timeout=30)
+
+            for u in updates:
+                offset = u.update_id + 1
+                await handle_update(u.to_dict())
+
+        except Exception as e:
+            log(f"ERROR: {e}")
+
+        await asyncio.sleep(0.5)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(run())
