@@ -1,50 +1,55 @@
-import json
 import os
+import json
 import random
-import requests
+import asyncio
+from telegram import Bot
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-CHAT_ID = os.getenv("CHAT_ID")
+TOKEN = os.getenv("BOT_TOKEN")
+CHAT_ID = int(os.getenv("CHAT_ID"))
 
-DATA_FILE = "data/players.json"
+DATA_FILE = "football/data.json"
 
 
 def load_players():
+    if not os.path.exists(DATA_FILE):
+        return []
     with open(DATA_FILE, "r") as f:
         return json.load(f)["players"]
 
 
-def send_message(text):
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    requests.post(url, json={
-        "chat_id": CHAT_ID,
-        "text": text
-    })
+def reset_players():
+    with open(DATA_FILE, "w") as f:
+        json.dump({"players": []}, f)
 
 
 def build_teams(players):
     random.shuffle(players)
-    return [players[i:i+7] for i in range(0, len(players), 7)]
+
+    team_size = 7
+    teams = [players[i:i + team_size] for i in range(0, len(players), team_size)]
+    return teams
 
 
-def main():
+async def main():
+    bot = Bot(token=TOKEN)
+
     players = load_players()
 
     if len(players) < 7:
-        send_message(f"❌ Недостаточно игроков: {len(players)}")
+        await bot.send_message(CHAT_ID, "❌ Недостаточно игроков (минимум 7)")
         return
 
     teams = build_teams(players)
 
-    text = f"⚽ Всего игроков: {len(players)}\n\n"
+    text = "⚽ Команды сформированы:\n\n"
 
     for i, team in enumerate(teams, 1):
-        text += f"🔵 Команда {i}\n"
-        text += "\n".join([f"• {p}" for p in team])
-        text += "\n\n"
+        text += f"Команда {i}:\n" + "\n".join([f"- {p}" for p in team]) + "\n\n"
 
-    send_message(text)
+    await bot.send_message(CHAT_ID, text)
+
+    reset_players()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

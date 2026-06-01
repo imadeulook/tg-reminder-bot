@@ -1,81 +1,63 @@
-import json
 import os
-from aiogram import types, F
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.filters import Command
+import json
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
-DATA_FILE = "data/players.json"
+TOKEN = os.getenv("BOT_TOKEN")
+CHAT_ID = int(os.getenv("CHAT_ID"))
+
+DATA_FILE = "football/data.json"
 
 
-# --------------------
-# STORAGE
-# --------------------
-def load_players():
+def load_data():
     if not os.path.exists(DATA_FILE):
-        return []
+        return {"players": []}
     with open(DATA_FILE, "r") as f:
-        return json.load(f)["players"]
+        return json.load(f)
 
 
-def save_players(players):
-    os.makedirs("data", exist_ok=True)
+def save_data(data):
     with open(DATA_FILE, "w") as f:
-        json.dump({"players": players}, f, ensure_ascii=False, indent=2)
+        json.dump(data, f)
 
 
-# --------------------
-# UI
-# --------------------
-def keyboard():
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(text="⚽ Буду", callback_data="football_join"),
-            InlineKeyboardButton(text="❌ Не буду", callback_data="football_leave")
-        ]
-    ])
+# /football
+async def football(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [
+        [InlineKeyboardButton("⚽ Я играю", callback_data="join")]
+    ]
+
+    await update.message.reply_text(
+        "⚽ Игра открыта!\nНажми кнопку чтобы записаться",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
 
-# --------------------
-# HANDLERS
-# --------------------
-def register_handlers(dp):
+# кнопка
+async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
 
-    @dp.message(Command("football"))
-    async def football(message: types.Message):
-        players = load_players()
+    user = query.from_user
+    data = load_data()
 
-        text = (
-            "⚽ <b>Футбол регистрация</b>\n\n"
-            f"Игроков: {len(players)}\n\n"
-        )
-
-        if players:
-            text += "\n".join([f"• {p}" for p in players])
-
-        await message.answer(text, reply_markup=keyboard(), parse_mode="HTML")
+    # защита от дубля
+    if user.id not in data["players"]:
+        data["players"].append(user.id)
+        save_data(data)
+        await query.edit_message_text(f"✅ {user.first_name} записан")
+    else:
+        await query.answer("Ты уже в игре", show_alert=True)
 
 
-    @dp.callback_query(F.data == "football_join")
-    async def join(call: types.CallbackQuery):
-        players = load_players()
+def main():
+    app = Application.builder().token(TOKEN).build()
 
-        user = call.from_user.full_name
+    app.add_handler(CommandHandler("football", football))
+    app.add_handler(CallbackQueryHandler(button))
 
-        if user not in players:
-            players.append(user)
-            save_players(players)
-
-        await call.answer("Ты записан ⚽")
+    app.run_polling()
 
 
-    @dp.callback_query(F.data == "football_leave")
-    async def leave(call: types.CallbackQuery):
-        players = load_players()
-
-        user = call.from_user.full_name
-
-        if user in players:
-            players.remove(user)
-            save_players(players)
-
-        await call.answer("Убрал из списка ❌")
+if __name__ == "__main__":
+    main()
