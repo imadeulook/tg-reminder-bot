@@ -15,7 +15,7 @@ RATINGS_FILE = "data/ratings.json"
 
 TEAM_COUNT = 2   # 3 команды
 TEAM_SIZE = 3    # по 3 игрока (TEST MODE)
-SUBS = 3  # кол-во запасных в команде (TEST MODE)
+SUBS = 1  # кол-во запасных в команде (TEST MODE)
 
 # ======================
 # LOADERS
@@ -140,7 +140,7 @@ async def main():
 
     enriched = enrich(players, ratings)
 
-    teams, power, _ = build_teams(enriched)  # ❗ subs больше не используем
+    teams, power, _ = build_teams(enriched)  # subs больше не используем
 
     text = "⚽ <b>Команды сформированы (TEST MODE)</b>\n\n"
 
