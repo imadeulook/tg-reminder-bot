@@ -140,7 +140,7 @@ async def main():
 
     enriched = enrich(players, ratings)
 
-    teams, power, _ = build_teams(enriched)  # subs больше не используем
+    teams, power, = build_teams(enriched)  # subs больше не используем
 
     text = "⚽ <b>Команды сформированы (TEST MODE)</b>\n\n"
 
