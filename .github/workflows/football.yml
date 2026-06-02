@@ -1,4 +1,4 @@
-name: football-teams
+name: Teams Division Bot
 
 on:
   workflow_dispatch:
