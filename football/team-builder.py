@@ -130,13 +130,13 @@ async def main():
     for i, team in enumerate(teams, 1):
         text += f"🔵 Команда {i} ({round(power[i-1],1)})\n"
         for p in team:
-            text += f"• {p['name']} ({p['grade']} | {round(p['power'],1)})\n"
+            text += f"• {p['name']}\n"
         text += "\n"
 
     if subs:
         text += "🟡 Запасные:\n"
         for p in subs:
-            text += f"• {p['name']} ({p['grade']} | {round(p['power'],1)})\n"
+            text += f"• {p['name']}\n"
 
     await bot.send_message(
         CHAT_ID,
