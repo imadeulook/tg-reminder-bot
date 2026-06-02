@@ -1,6 +1,8 @@
 {
-  "790870831": { "name": "Timur", "rating": 9 },
-  "431725232": { "name": "\ud835\udc1f\ud835\udc2e\ud835\udc27\ud835\udc27\ud835\udc32\ud835\udc03\ud835\udc2e\ud835\udc27\ud835\udc27\ud835\udc32", "rating": 7 },
-  "456": { "name": "Eldik", "rating": 6 },
-  "789": { "name": "Tala", "rating": 4 }
+  "790870831": { "name": "Timur", "grade": "A", "rating": 9 },
+  "431725232": { "name": "\ud835\udc1f\ud835\udc2e\ud835\udc27\ud835\udc27\ud835\udc32\ud835\udc03\ud835\udc2e\ud835\udc27\ud835\udc27\ud835\udc32", "grade": "B", "rating": 7 },
+  "117413079": { "name": "Dzhamalov", "grade": "C", "rating": 6 },
+  "493129366": { "name": "DSS", "grade": "D", "rating": 4 },
+  "324251446": { "name": "nur\u00a9", "grade": "C", "rating": 4 },
+  "407707966": { "name": "\u0422\u0430\u043b\u0433\u0430\u0442", "grade": "B", "rating": 8 }
 }
