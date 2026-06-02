@@ -9,6 +9,12 @@ CHAT_ID = int(os.getenv("CHAT_ID"))
 PLAYERS_FILE = "data/players.json"
 RATINGS_FILE = "data/ratings.json"
 
+# ======================
+# TEST CONFIG
+# ======================
+
+TEAM_COUNT = 3   # 3 команды
+TEAM_SIZE = 3    # по 3 игрока (TEST MODE)
 
 # ======================
 # LOADERS
@@ -78,14 +84,16 @@ def enrich(players, ratings):
 
 def build_teams(players):
 
-    main = players[:21]   # 3 команды по 7
-    subs = players[21:]   # запасные (до 3)
+    main_count = TEAM_COUNT * TEAM_SIZE
 
-    teams = [[], [], []]
-    power = [0, 0, 0]
+    main = players[:main_count]   # 3 команды по 7
+    subs = players[main_count:]   # запасные (до 3)
+
+    teams = [[] for _ in range(TEAM_COUNT)]
+    power = [0] * TEAM_COUNT
 
     for i, p in enumerate(main):
-        idx = i % 3
+        idx = i % TEAM_COUNT
 
         teams[idx].append(p)
         power[idx] += p["power"]
@@ -104,10 +112,12 @@ async def main():
     players = load_players()
     ratings = load_ratings()
 
-    if len(players) < 21:
+    needed = TEAM_COUNT * TEAM_SIZE
+
+    if len(players) < needed:
         await bot.send_message(
             CHAT_ID,
-            f"❌ Нужно минимум 21 игрок (сейчас {len(players)})"
+            f"❌ Нужно минимум {needed} игроков (сейчас {len(players)})"
         )
         return
 
@@ -115,7 +125,7 @@ async def main():
 
     teams, power, subs = build_teams(enriched)
 
-    text = "⚽ <b>Команды сформированы</b>\n\n"
+    text = "⚽ <b>Команды сформированы (TEST MODE)</b>\n\n"
 
     for i, team in enumerate(teams, 1):
         text += f"🔵 Команда {i} ({round(power[i-1],1)})\n"

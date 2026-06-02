@@ -9,7 +9,7 @@ from telegram import Bot
 # CONFIG
 # ======================
 
-TOKEN = "1322219909:AAG13Qfr7GrYqK8nWYUtsd79gAE6AfadL0E"
+TOKEN = ":"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_FILE = os.path.normpath(os.path.join(BASE_DIR, "..", "data", "players.json"))
