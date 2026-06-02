@@ -15,6 +15,7 @@ RATINGS_FILE = "data/ratings.json"
 
 TEAM_COUNT = 2   # 3 команды
 TEAM_SIZE = 3    # по 3 игрока (TEST MODE)
+SUBS = 3  # кол-во запасных в команде (TEST MODE)
 
 # ======================
 # LOADERS
@@ -123,23 +124,34 @@ async def main():
 
     enriched = enrich(players, ratings)
 
-    teams, power, subs = build_teams(enriched)
+    teams, power, _ = build_teams(enriched)  # ❗ subs больше не используем
 
     text = "⚽ <b>Команды сформированы (TEST MODE)</b>\n\n"
 
     colors = ["🔵", "🟠", "🟢"]
 
-    for i, team in enumerate(teams, 1):
-        color = colors[i - 1] if i - 1 < len(colors) else "⚽"
-        text += f"{color} Команда {i}\n"
-        for p in team:
-            text += f"• {p['name']}\n"
-        text += "\n"
+    SUBS_PER_TEAM = SUBS  # сколько запасных в каждой команде
 
-    if subs:
-        text += "🟡 Запасные:\n"
-        for p in subs:
+    for i, team in enumerate(teams):
+        color = colors[i] if i < len(colors) else "⚽"
+
+        # сортируем по силе
+        sorted_team = sorted(team, key=lambda x: x["power"], reverse=True)
+
+        main_players = sorted_team[:-SUBS_PER_TEAM]
+        subs = sorted_team[-SUBS_PER_TEAM:]
+
+        text += f"{color} Команда {i+1}\n"
+
+        for p in main_players:
             text += f"• {p['name']}\n"
+
+        if subs:
+            text += "    ⚪ Запасные:\n"
+            for p in subs:
+                text += f"• {p['name']}\n"
+
+        text += "\n"
 
     await bot.send_message(
         CHAT_ID,
@@ -149,6 +161,4 @@ async def main():
 
     reset_players()
 
-
-if __name__ == "__main__":
-    asyncio.run(main())
+if __name__ == "__main__": asyncio.run(main())
