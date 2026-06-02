@@ -13,7 +13,7 @@ RATINGS_FILE = "data/ratings.json"
 # TEST CONFIG
 # ======================
 
-TEAM_COUNT = 3   # 3 команды
+TEAM_COUNT = 2   # 3 команды
 TEAM_SIZE = 3    # по 3 игрока (TEST MODE)
 
 # ======================
