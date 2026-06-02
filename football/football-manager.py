@@ -215,6 +215,12 @@ async def run():
     offset = 0
     log("🚀 FOOTBALL BOT STARTED")
 
+    updates = await bot.get_updates()
+    if updates:
+        offset = updates[-1].update_id + 1
+
+    log("🚀 CLEAN START, OFFSET: %s", offset)
+
     while True:
         try:
             updates = await bot.get_updates(offset=offset, timeout=30)
