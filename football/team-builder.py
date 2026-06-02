@@ -87,9 +87,10 @@ def build_teams(players):
 
     main_count = TEAM_COUNT * TEAM_SIZE
 
-    main = players[:main_count]   # 3 команды по 7
-    subs = players[main_count:]   # запасные (до 3)
+    main = players[:main_count]
+    subs_pool = players[main_count:]
 
+    # основные команды
     teams = [[] for _ in range(TEAM_COUNT)]
     power = [0] * TEAM_COUNT
 
@@ -99,7 +100,22 @@ def build_teams(players):
         teams[idx].append(p)
         power[idx] += p["power"]
 
-    return teams, power, subs
+    # распределяем запасных (round robin)
+    SUB_LIMIT = 3
+    subs_added = [0] * TEAM_COUNT
+
+    for p in subs_pool:
+        # ищем команду с минимальным запасом
+        idx = min(range(TEAM_COUNT), key=lambda i: subs_added[i])
+
+        if subs_added[idx] >= SUB_LIMIT:
+            continue  # лимит 3 замены
+
+        teams[idx].append(p)
+        power[idx] += p["power"]
+        subs_added[idx] += 1
+
+    return teams, power
 
 
 # ======================
