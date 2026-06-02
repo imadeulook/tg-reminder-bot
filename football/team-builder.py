@@ -127,8 +127,11 @@ async def main():
 
     text = "⚽ <b>Команды сформированы (TEST MODE)</b>\n\n"
 
+    colors = ["🔵", "🟠", "🟢"]
+
     for i, team in enumerate(teams, 1):
-        text += f"🔵 Команда {i} ({round(power[i-1],1)})\n"
+        color = colors[i - 1] if i - 1 < len(colors) else "⚽"
+        text += f"{color} Команда {i}\n"
         for p in team:
             text += f"• {p['name']}\n"
         text += "\n"
